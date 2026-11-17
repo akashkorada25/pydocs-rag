@@ -1,0 +1,49 @@
+name: Retrieval benchmark
+
+# Free: keyword, TF-IDF and local embedding search need no API key.
+# The re-ranking rows run only if the ANTHROPIC_API_KEY secret is set (about $0.02).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "ragassist/**"
+      - "eval/questions.yaml"
+      - ".github/workflows/retrieval.yml"
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dense]"
+
+      - name: Benchmark retrievers
+        run: |
+          pydocs-rag bench --retrievers bm25,tfidf,hybrid-lexical,dense,hybrid \
+            --out results/retrieval.md --json-out results/retrieval.json | tee results-bench.txt
+
+      - name: Benchmark with Claude re-ranking
+        if: ${{ env.ANTHROPIC_API_KEY != '' }}
+        run: |
+          pydocs-rag bench --retrievers bm25+rerank,hybrid+rerank \
+            --out results/retrieval_rerank.md --json-out results/retrieval_rerank.json | tee -a results-bench.txt
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo '## Retrieval benchmark' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat results-bench.txt >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: retrieval-results
+          path: results/

@@ -1,0 +1,73 @@
+name: End-to-end eval (Claude)
+
+# Answers every question in eval/questions.yaml with each system (closed-book, BM25, hybrid,
+# hybrid + re-ranking) using Claude Haiku 5.5, and grades the answers with Claude Sonnet 5.5
+# through EvalForge. Costs roughly $2-3 per run. Needs the ANTHROPIC_API_KEY secret.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "eval/rag_suite.yaml"
+      - ".github/workflows/e2e.yml"
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check the API key is configured
+        id: key
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::notice::Skipped: add the ANTHROPIC_API_KEY secret under Settings > Secrets and variables > Actions, then run this workflow."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - run: pip install -e ".[dense,eval]"
+        if: steps.key.outputs.ok == 'true'
+
+      - name: Run the evaluation
+        if: steps.key.outputs.ok == 'true'
+        run: |
+          mkdir -p results
+          evalforge run eval/rag_suite.yaml --concurrency 4 --retries 5 \
+            --report results/e2e-report.html | tee results/e2e-output.txt
+
+      - name: Per-check results
+        if: always() && steps.key.outputs.ok == 'true'
+        run: pydocs-rag e2e-report --out results/end_to_end.md
+
+      - name: Failing cases
+        if: always() && steps.key.outputs.ok == 'true'
+        run: evalforge failures latest --limit 60 --chars 400 | tee results/e2e-failures.txt
+
+      - name: Screenshot of the app
+        if: always() && steps.key.outputs.ok == 'true'
+        run: |
+          pydocs-rag serve --port 8000 > server.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf localhost:8000/api/health > /dev/null && break; sleep 2; done
+          # Warm up: the first request builds the embedding index
+          curl -s -X POST localhost:8000/api/ask -H 'Content-Type: application/json' \
+            -d '{"question": "warm up", "retriever": "hybrid"}' > /dev/null
+          google-chrome --headless=new --no-sandbox --disable-gpu --hide-scrollbars --window-size=1000,900 \
+            --virtual-time-budget=60000 --screenshot=results/screenshot.png \
+            "http://127.0.0.1:8000/?q=Why%20are%20default%20argument%20values%20shared%20between%20calls%3F"
+          echo "SCREENSHOT_BASE64_START"; base64 -w0 results/screenshot.png; echo; echo "SCREENSHOT_BASE64_END"
+
+      - name: Job summary
+        if: always() && steps.key.outputs.ok == 'true'
+        run: cat results/end_to_end.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.key.outputs.ok == 'true'
+        with:
+          name: e2e-results
+          path: results/

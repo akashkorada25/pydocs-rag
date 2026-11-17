@@ -1,0 +1,22 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev,eval]"
+      - run: pytest -q
+
+      - name: End-to-end smoke test (offline, no API key)
+        run: |
+          python eval/build_suite.py --offline
+          evalforge run eval/rag_suite_offline.yaml --retries 0
+          pydocs-rag e2e-report --out results/smoke.md

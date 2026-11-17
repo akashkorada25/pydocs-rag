@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask the Python Docs</title>
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--ink:#1c1c1a;--muted:#6b6a64;--line:#e3e1da;--accent:#2f5bd3;--accent-soft:#e6ecfb;
+--good:#2b8a3e;--bad:#c92a2a;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root{--bg:#131312;--card:#1d1d1b;--ink:#eceae4;--muted:#9b9a94;--line:#31302c;
+--accent:#8fa8ff;--accent-soft:#232c48;--good:#69db7c;--bad:#ff8787}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:860px;margin:0 auto;padding:36px 20px 80px}
+header h1{font-size:26px;margin:0}
+header p{color:var(--muted);margin:4px 0 0}
+form{display:flex;gap:8px;margin-top:22px;flex-wrap:wrap}
+input[type=text]{flex:1 1 360px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:inherit}
+select,button{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+button{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}
+.examples{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.examples button{background:var(--card);color:var(--muted);border:1px solid var(--line);font-weight:400;font-size:13px;padding:5px 10px;border-radius:99px}
+.status{color:var(--muted);font-size:13px;margin-top:8px}
+.turn{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-top:18px}
+.q{font-weight:600;margin-bottom:8px}
+.a{white-space:pre-wrap}
+.a code{font-family:var(--mono);font-size:13px;background:var(--accent-soft);padding:1px 4px;border-radius:4px}
+.a pre{background:var(--accent-soft);padding:10px 12px;border-radius:8px;overflow-x:auto;white-space:pre;margin:8px 0}
+.a pre code{background:none;padding:0}
+.cite{font-size:11px;vertical-align:super;color:var(--accent);text-decoration:none;font-weight:600;margin:0 1px}
+.sources{margin-top:14px;border-top:1px solid var(--line);padding-top:10px;display:grid;gap:6px}
+.src{font-size:13px;display:flex;gap:8px;align-items:baseline}
+.src .n{min-width:22px;height:20px;border-radius:6px;background:var(--line);text-align:center;font-weight:600;font-size:12px}
+.src.cited .n{background:var(--accent);color:#fff}
+.src a{color:var(--ink)}
+.src .doc{color:var(--muted)}
+.meta{color:var(--muted);font-size:12px;margin-top:10px}
+.error{color:var(--bad)}
+footer{color:var(--muted);font-size:12px;margin-top:40px}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>Ask the Python Docs</h1>
+  <p>Answers come only from the official Python tutorial, FAQ and HOWTO guides, with citations you can check.</p>
+</header>
+<form id="ask">
+  <input type="text" id="q" placeholder="e.g. Why are default argument values shared between calls?" autocomplete="off" required maxlength="1000">
+  <select id="retriever" title="Retrieval method"></select>
+  <button id="go" type="submit">Ask</button>
+</form>
+<div class="examples" id="examples"></div>
+<div class="status" id="status"></div>
+<div id="turns"></div>
+<footer>Python documentation © Python Software Foundation, used under the PSF License. Built with EvalForge-tested retrieval.</footer>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const EXAMPLES = ["Why are default argument values shared between calls?", "How do I sort by two keys?",
+  "What does the else clause on a for loop do?", "How do I create a virtual environment?"];
+EXAMPLES.forEach(t => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t;
+  b.onclick = () => { $('#q').value = t; $('#ask').requestSubmit(); }; $('#examples').appendChild(b); });
+
+fetch('/api/health').then(r => r.json()).then(h => {
+  h.retrievers.forEach(r => { const o = document.createElement('option'); o.value = r;
+    o.textContent = r === 'none' ? 'none (no documents)' : r; if (r === h.default) o.selected = true; $('#retriever').appendChild(o); });
+  $('#status').textContent = `${h.chunks} passages indexed · ${h.llm === 'claude' ? 'answers by Claude' : 'offline mode: quotes the best passage (set ANTHROPIC_API_KEY for real answers)'}`;
+  // Shareable links: /?q=question&retriever=bm25 asks straight away
+  const params = new URLSearchParams(location.search);
+  if (params.get('retriever')) $('#retriever').value = params.get('retriever');
+  if (params.get('q')) { $('#q').value = params.get('q'); $('#ask').requestSubmit(); }
+});
+
+function renderAnswer(text, sources) {
+  // Escape everything first; then add markup for code blocks, inline code, bold and [n] citations.
+  // Citations are only linked outside code, so printed lists like [1, 2] in examples stay as text.
+  const cite = t => t.replace(/\[(\d+)\]/g, (m, n) => {
+    const s = sources[Number(n) - 1];
+    return s ? `<a class="cite" href="${esc(s.url)}" target="_blank" rel="noopener" title="${esc(s.source)}">[${n}]</a>` : m;
+  });
+  const inline = t => t.split(/(`[^`\n]+`)/g).map((part, i) =>
+    i % 2 ? `<code>${part.slice(1, -1)}</code>` : cite(part.replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>'))).join('');
+  return esc(text).split(/```[\w-]*\n?([\s\S]*?)```/g).map((part, i) =>
+    i % 2 ? `<pre><code>${part.replace(/\n$/, '')}</code></pre>` : inline(part)).join('');
+}
+
+$('#ask').addEventListener('submit', async e => {
+  e.preventDefault();
+  const question = $('#q').value.trim(); if (!question) return;
+  $('#go').disabled = true; $('#go').textContent = 'Thinking…';
+  const turn = document.createElement('div'); turn.className = 'turn';
+  turn.innerHTML = `<div class="q">${esc(question)}</div><div class="a muted">Searching the docs…</div>`;
+  $('#turns').prepend(turn);
+  try {
+    const res = await fetch('/api/ask', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({question, retriever: $('#retriever').value})});
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || res.statusText);
+    const srcs = d.sources.map(s => `<div class="src ${s.cited ? 'cited' : ''}"><span class="n">${s.n}</span>
+      <span><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.section)}</a> <span class="doc">· ${esc(s.doc_title)}</span></span></div>`).join('');
+    turn.innerHTML = `<div class="q">${esc(question)}</div><div class="a">${renderAnswer(d.answer, d.sources)}</div>
+      ${srcs ? `<div class="sources">${srcs}</div>` : ''}
+      <div class="meta">${esc(d.retriever)} · ${esc(d.model)} · ${d.usage.latency_ms} ms · $${d.usage.cost_usd.toFixed(5)}</div>`;
+  } catch (err) {
+    turn.querySelector('.a').innerHTML = `<span class="error">${esc(err.message)}</span>`;
+  } finally {
+    $('#go').disabled = false; $('#go').textContent = 'Ask'; $('#q').select();
+  }
+});
+</script>
+</body>
+</html>

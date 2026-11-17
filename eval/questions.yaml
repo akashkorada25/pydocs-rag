@@ -1,0 +1,247 @@
+# Evaluation set for pydocs-rag.
+#
+# Each answerable question has:
+#   gold:      sections that answer it ("doc#section"); retrieving any one counts as a hit
+#   must_include: short terms a correct answer will contain (checked case-insensitively)
+#   reference: a correct answer written from the docs, for the LLM judge
+# Questions are phrased the way people ask them, not copied from section headings.
+# Unanswerable questions are outside the docs: the assistant should say so.
+
+answerable:
+  - id: default-arg-shared
+    question: "I used an empty list as a default parameter and items keep piling up between calls. Why?"
+    gold: ["tutorial/controlflow#Default Argument Values", "faq/programming#Why are default values shared between objects?"]
+    must_include: ["once"]
+    reference: "The default value is evaluated only once, when the function is defined, so a mutable default like a list is shared between calls. Use None as the default and create a new list inside the function."
+    tags: [functions]
+
+  - id: for-else
+    question: "When does the else block attached to a for loop actually run?"
+    gold: ["tutorial/controlflow#else Clauses on Loops"]
+    must_include: ["break"]
+    reference: "The else clause runs when the loop finishes normally, after the iterable is exhausted, and does not run if the loop is ended by a break."
+    tags: [control-flow]
+
+  - id: venv-create
+    question: "What command creates an isolated environment for a project's dependencies?"
+    gold: ["tutorial/venv#Creating Virtual Environments"]
+    must_include: ["venv"]
+    reference: "Run `python -m venv <directory>` (for example `python -m venv tutorial-env`) to create a virtual environment, then activate it."
+    tags: [environment]
+
+  - id: pip-freeze
+    question: "How can I record the packages I have installed so someone else can install the exact same versions?"
+    gold: ["tutorial/venv#Managing Packages with pip"]
+    must_include: ["freeze", "requirements.txt"]
+    reference: "Use `python -m pip freeze > requirements.txt` to write the installed packages and versions to a file, and `python -m pip install -r requirements.txt` to install them."
+    tags: [environment]
+
+  - id: empty-set
+    question: "How do I make an empty set? Using {} doesn't seem to work."
+    gold: ["tutorial/datastructures#Sets"]
+    must_include: ["set()"]
+    reference: "Use `set()`. Empty curly braces `{}` create an empty dictionary, not a set."
+    tags: [data-structures]
+
+  - id: list-as-queue
+    question: "Is a list a good choice for a first-in, first-out queue?"
+    gold: ["tutorial/datastructures#Using Lists as Queues"]
+    must_include: ["deque"]
+    reference: "Not really. Appending and popping from the end of a list is fast, but inserting or popping from the beginning is slow because every element has to shift. Use collections.deque, which is designed for fast appends and pops at both ends."
+    tags: [data-structures]
+
+  - id: tuple-vs-list
+    question: "When should I use a tuple instead of a list?"
+    gold: ["tutorial/datastructures#Tuples and Sequences", "faq/design#Why are there separate tuple and list data types?"]
+    must_include: ["immutable"]
+    reference: "Tuples are immutable and usually hold a fixed collection of possibly different kinds of items, often accessed by unpacking or indexing, like a record. Lists are mutable and usually hold items of the same kind that you iterate over. Tuples can be used as dictionary keys."
+    tags: [data-structures]
+
+  - id: float-precision
+    question: "Why does 0.1 + 0.2 not equal exactly 0.3?"
+    gold: ["tutorial/floatingpoint#Floating-Point Arithmetic:  Issues and Limitations", "tutorial/floatingpoint#Representation Error", "faq/design#Why are floating-point calculations so inaccurate?"]
+    must_include: ["binary"]
+    reference: "Floats are stored as binary fractions, and most decimal fractions such as 0.1 cannot be represented exactly in binary, so small representation errors add up. Use round(), math.isclose(), or the decimal or fractions modules when exactness matters."
+    tags: [numbers]
+
+  - id: main-guard
+    question: "What is the point of `if __name__ == \"__main__\":` at the bottom of a file?"
+    gold: ["tutorial/modules#Executing modules as scripts"]
+    must_include: ["import"]
+    reference: "When a file is run as a script, its __name__ is \"__main__\", so the code under that check runs. When the file is imported as a module, the code does not run. This lets a file be both a usable module and a script."
+    tags: [modules]
+
+  - id: init-py
+    question: "What is the __init__.py file for in a folder of modules?"
+    gold: ["tutorial/modules#Packages"]
+    must_include: ["package"]
+    reference: "The __init__.py file makes Python treat the directory as a package. It can be empty, or it can run initialization code for the package or set the __all__ variable."
+    tags: [modules]
+
+  - id: try-else
+    question: "What's the point of putting an else clause on a try statement?"
+    gold: ["tutorial/errors#Handling Exceptions"]
+    must_include: ["raise"]
+    reference: "The else clause runs only if the try clause does not raise an exception. Putting that code in else instead of in try avoids accidentally catching exceptions raised by code that the try statement was not meant to protect."
+    tags: [errors]
+
+  - id: finally
+    question: "Does a finally block still run if an exception isn't caught?"
+    gold: ["tutorial/errors#Defining Clean-up Actions"]
+    must_include: ["finally"]
+    reference: "Yes. The finally clause always runs as the last thing before the try statement completes, whether or not an exception occurred. If an exception is not handled, it is re-raised after the finally clause runs. It is used for clean-up such as releasing resources."
+    tags: [errors]
+
+  - id: with-files
+    question: "Why should I use the with keyword when opening files?"
+    gold: ["tutorial/inputoutput#Reading and writing files"]
+    must_include: ["close"]
+    reference: "Using with means the file is closed properly when the block finishes, even if an exception is raised. It is also shorter than writing an equivalent try/finally block."
+    tags: [files]
+
+  - id: json-save
+    question: "How can I save a dictionary to a file and load it back later?"
+    gold: ["tutorial/inputoutput#Saving structured data with json"]
+    must_include: ["json"]
+    reference: "Use the json module. json.dump(obj, f) writes the object to an open text file, and json.load(f) reads it back. json.dumps and json.loads convert to and from strings."
+    tags: [files]
+
+  - id: private-attrs
+    question: "How do I make an attribute private in a Python class?"
+    gold: ["tutorial/classes#Private Variables", "faq/programming#I try to use __spam and I get an error about _SomeClassName__spam."]
+    must_include: ["mangl"]
+    reference: "Python has no truly private instance variables. By convention a name with a leading underscore like _spam is treated as non-public. Names with at least two leading underscores like __spam get name mangling, which rewrites them to _ClassName__spam to avoid clashes with names in subclasses."
+    tags: [classes]
+
+  - id: generators
+    question: "How do I write a function that produces values one at a time instead of building a whole list?"
+    gold: ["tutorial/classes#Generators", "howto/functional#Generators"]
+    must_include: ["yield"]
+    reference: "Write a generator function that uses yield instead of return. Each call to next() resumes the function where it left off, producing one value at a time. Generator expressions are a compact alternative."
+    tags: [functions]
+
+  - id: switch
+    question: "Does Python have something like a switch statement?"
+    gold: ["tutorial/controlflow#match Statements", "faq/design#Why isn't there a switch or case statement in Python?"]
+    must_include: ["match"]
+    reference: "Yes. The match statement compares a value against case patterns, with `case _:` as a wildcard. if/elif/else chains or a dictionary that maps values to functions also work."
+    tags: [control-flow]
+
+  - id: keyword-only
+    question: "How can I force callers to pass certain arguments by name?"
+    gold: ["tutorial/controlflow#Keyword-Only Arguments", "tutorial/controlflow#Special parameters"]
+    must_include: ["*"]
+    reference: "Put a bare * in the parameter list. Parameters after it are keyword-only and must be passed by name."
+    tags: [functions]
+
+  - id: slash-params
+    question: "What does a / in a function's parameter list mean?"
+    gold: ["faq/programming#What does the slash(/) in the parameter list of a function mean?", "tutorial/controlflow#Positional-Only Parameters", "tutorial/controlflow#Special parameters"]
+    must_include: ["positional"]
+    reference: "Parameters before the / are positional-only. They must be passed by position and cannot be passed as keyword arguments."
+    tags: [functions]
+
+  - id: sort-stable
+    question: "If two items have the same sort key, will sorting keep them in their original order?"
+    gold: ["howto/sorting#Sort Stability and Complex Sorts"]
+    must_include: ["stable"]
+    reference: "Yes. Python's sorts are guaranteed to be stable, so records with equal keys keep their original order. This makes it possible to sort in several passes, for example by a secondary key and then by the primary key."
+    tags: [sorting]
+
+  - id: sort-vs-sorted
+    question: "What's the difference between list.sort() and sorted()?"
+    gold: ["howto/sorting#Sorting Basics", "faq/design#Why doesn't list.sort() return the sorted list?"]
+    must_include: ["None"]
+    reference: "list.sort() sorts the list in place and returns None, and it only works on lists. sorted() returns a new sorted list and accepts any iterable, leaving the original unchanged."
+    tags: [sorting]
+
+  - id: sort-by-field
+    question: "How do I sort a list of tuples by their second element?"
+    gold: ["howto/sorting#Key Functions", "howto/sorting#Operator Module Functions and Partial Function Evaluation"]
+    must_include: ["key"]
+    reference: "Pass a key function, for example sorted(data, key=lambda t: t[1]) or sorted(data, key=itemgetter(1)) using operator.itemgetter."
+    tags: [sorting]
+
+  - id: logging-info-missing
+    question: "Why don't my logging.info() messages appear in the console?"
+    gold: ["howto/logging#A simple example", "howto/logging#Logging Levels", "howto/logging#What happens if no configuration is provided"]
+    must_include: ["WARNING"]
+    reference: "The default logging level is WARNING, so INFO and DEBUG messages are ignored unless you lower the level, for example with logging.basicConfig(level=logging.INFO)."
+    tags: [logging]
+
+  - id: logging-file
+    question: "How do I send my log messages to a file instead of the screen?"
+    gold: ["howto/logging#Logging to a file"]
+    must_include: ["basicConfig"]
+    reference: "Call logging.basicConfig(filename='example.log', level=...) before logging. Messages then go to that file. Use filemode='w' to start a fresh file each run instead of appending."
+    tags: [logging]
+
+  - id: regex-raw
+    question: "Why are regex patterns usually written with an r in front of the string?"
+    gold: ["howto/regex#The backslash plague"]
+    must_include: ["backslash"]
+    reference: "Raw strings (r\"...\") don't treat backslashes specially, so you don't have to double every backslash. Regular expressions use many backslashes, and without raw strings a pattern that matches one literal backslash has to be written with four backslashes."
+    tags: [regex]
+
+  - id: regex-greedy
+    question: "My regex with .* matches far too much text. How do I make it match as little as possible?"
+    gold: ["howto/regex#Greedy versus non-greedy"]
+    must_include: ["*?"]
+    reference: "The * quantifier is greedy and matches as much as it can. Use the non-greedy version *? (or +?, ??, {m,n}?), which matches as little text as possible."
+    tags: [regex]
+
+  - id: copy-object
+    question: "How do I copy an object so that changing the copy doesn't change the original?"
+    gold: ["faq/programming#How do I copy an object in Python?"]
+    must_include: ["copy"]
+    reference: "Use the copy module. copy.copy() makes a shallow copy and copy.deepcopy() makes a deep copy. Some objects can be copied more easily, for example a dictionary with its copy() method and a sequence with a full slice like new_list = l[:]."
+    tags: [objects]
+
+  - id: list-aliasing
+    question: "I did y = x, then appended to y, and x changed too. Why?"
+    gold: ["faq/programming#Why did changing list 'y' also change list 'x'?"]
+    must_include: ["same"]
+    reference: "Assignment does not copy objects. After y = x, both names refer to the same list object, and lists are mutable, so a change made through y is visible through x."
+    tags: [objects]
+
+  - id: unbound-local
+    question: "Why do I get UnboundLocalError when I assign to a variable inside a function that I can read outside it?"
+    gold: ["faq/programming#Why am I getting an UnboundLocalError when the variable has a value?", "faq/programming#What are the rules for local and global variables in Python?"]
+    must_include: ["global"]
+    reference: "Assigning to a variable anywhere in a function makes it local to that whole function, so reading it before the assignment raises UnboundLocalError. Declare it global (or nonlocal in a nested function) to assign to the outer variable."
+    tags: [functions]
+
+  - id: enum-unique
+    question: "How can I stop an Enum from having two members with the same value?"
+    gold: ["howto/enum#Ensuring unique enumeration values"]
+    must_include: ["unique"]
+    reference: "Decorate the Enum class with the @unique decorator from the enum module. It raises a ValueError if any two members have the same value."
+    tags: [enum]
+
+  - id: enum-auto
+    question: "Can enum values be assigned automatically instead of typing each number?"
+    gold: ["howto/enum#Using automatic values", "howto/enum#Using auto"]
+    must_include: ["auto"]
+    reference: "Yes. Use auto() from the enum module as the member value, and an appropriate value is generated (by default counting up from 1)."
+    tags: [enum]
+
+  - id: groupby
+    question: "How do I group consecutive items that share the same key?"
+    gold: ["howto/functional#Grouping elements"]
+    must_include: ["groupby"]
+    reference: "Use itertools.groupby(iterable, key_func). It groups consecutive elements with the same key and returns (key, group) pairs. The input should be sorted by the key first if equal keys aren't already adjacent."
+    tags: [functional]
+
+unanswerable:
+  - id: oos-flask-aws
+    question: "How do I deploy a Flask app to AWS Lambda?"
+  - id: oos-numpy-version
+    question: "What is the latest version of NumPy?"
+  - id: oos-pytorch
+    question: "How do I train a neural network with PyTorch?"
+  - id: oos-django-fastapi
+    question: "Which web framework is faster, Django or FastAPI?"
+  - id: oos-postgres
+    question: "How do I connect to a PostgreSQL database with psycopg2?"
+  - id: oos-pandas-merge
+    question: "How do I merge two pandas DataFrames on a column?"
