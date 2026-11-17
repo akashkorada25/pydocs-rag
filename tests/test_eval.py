@@ -52,7 +52,7 @@ def test_generated_suites_are_valid_evalforge_suites(tmp_path):
         path.write_text(yaml.safe_dump(build_suite.build(offline)))
         suite = evalforge.load_suite(path)
         assert len(suite.cases) == len(QUESTIONS["answerable"]) + len(QUESTIONS["unanswerable"])
-        assert [p.id for p in suite.providers] == ["closed-book", "bm25", "hybrid", "hybrid+rerank"]
+        assert [p.id for p in suite.providers] == ["closed-book", "bm25", "dense", "hybrid", "dense+rerank"]
 
 
 class FakeResult:

@@ -35,7 +35,7 @@ def summarise(results) -> list[dict]:
         row["cost_per_question"] = sum(r.cost_usd for r in rs) / len(rs)
         row["judge_cost"] = sum(r.judge_cost_usd for r in rs)
         rows.append(row)
-    order = ["closed-book", "bm25", "dense", "hybrid", "hybrid+rerank"]
+    order = ["closed-book", "bm25", "dense", "hybrid", "dense+rerank", "hybrid+rerank"]
     rows.sort(key=lambda x: order.index(x["system"]) if x["system"] in order else 99)
     return rows
 

@@ -14,17 +14,23 @@ providers:
   params:
     retriever: bm25
     k: 5
+- id: dense
+  provider: python
+  model: ragassist.app:evalforge_answer
+  params:
+    retriever: dense
+    k: 5
 - id: hybrid
   provider: python
   model: ragassist.app:evalforge_answer
   params:
     retriever: hybrid
     k: 5
-- id: hybrid+rerank
+- id: dense+rerank
   provider: python
   model: ragassist.app:evalforge_answer
   params:
-    retriever: hybrid+rerank
+    retriever: dense+rerank
     k: 5
 judge:
   id: judge-sonnet-5.5

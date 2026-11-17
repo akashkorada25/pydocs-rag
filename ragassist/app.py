@@ -32,7 +32,9 @@ def embedder() -> CachingEmbedder:
 
 
 def default_retriever() -> str:
-    return "hybrid" if dense_available() else "hybrid-lexical"
+    # Dense retrieval had the best recall in the benchmark (see README); BM25 is the
+    # best choice when the embedding model isn't installed.
+    return "dense" if dense_available() else "bm25"
 
 
 def get_pipeline(retriever: str = "auto", k: int = 5, model: str = "claude-haiku-5-5",

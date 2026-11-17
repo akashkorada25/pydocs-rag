@@ -34,15 +34,18 @@ DECLINES_RUBRIC = (
 SYSTEMS = [
     ("closed-book", "none"),
     ("bm25", "bm25"),
+    ("dense", "dense"),
     ("hybrid", "hybrid"),
-    ("hybrid+rerank", "hybrid+rerank"),
+    ("dense+rerank", "dense+rerank"),
 ]
 
 
 def build(offline: bool) -> dict:
     q = yaml.safe_load((HERE / "questions.yaml").read_text(encoding="utf-8"))
     params = {"allow_offline": True} if offline else {}
-    systems = [(sid, r.replace("hybrid", "hybrid-lexical")) for sid, r in SYSTEMS] if offline else SYSTEMS
+    # Offline smoke test: no embedding model, so dense becomes tfidf and hybrid becomes bm25+tfidf
+    systems = ([(sid, r.replace("hybrid", "hybrid-lexical").replace("dense", "tfidf")) for sid, r in SYSTEMS]
+               if offline else SYSTEMS)
     providers = [{"id": sid, "provider": "python", "model": "ragassist.app:evalforge_answer",
                   "params": {"retriever": r, "k": 5, **params}} for sid, r in systems]
     judge = ({"id": "mock-judge", "provider": "mock", "model": "mock-strong"} if offline else

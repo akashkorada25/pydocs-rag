@@ -21,8 +21,8 @@ MAX_QUESTION_CHARS = 1000
 
 
 def retriever_options() -> list[str]:
-    base = ["hybrid", "dense", "bm25", "tfidf", "hybrid-lexical"] if dense_available() else ["hybrid-lexical", "bm25", "tfidf"]
-    return base + [b + "+rerank" for b in base[:1]] + ["none"]
+    base = ["dense", "hybrid", "bm25", "tfidf", "hybrid-lexical"] if dense_available() else ["bm25", "tfidf", "hybrid-lexical"]
+    return base + [base[0] + "+rerank", "none"]
 
 
 class Handler(BaseHTTPRequestHandler):

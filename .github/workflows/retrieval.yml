@@ -1,7 +1,7 @@
 name: Retrieval benchmark
 
 # Free: keyword, TF-IDF and local embedding search need no API key.
-# The re-ranking rows run only if the ANTHROPIC_API_KEY secret is set (about $0.02).
+# The re-ranking rows run only if the ANTHROPIC_API_KEY secret is set (about $0.05).
 on:
   workflow_dispatch:
   push:
@@ -31,7 +31,7 @@ jobs:
       - name: Benchmark with Claude re-ranking
         if: ${{ env.ANTHROPIC_API_KEY != '' }}
         run: |
-          pydocs-rag bench --retrievers bm25+rerank,hybrid+rerank \
+          pydocs-rag bench --retrievers bm25+rerank,dense+rerank,hybrid+rerank \
             --out results/retrieval_rerank.md --json-out results/retrieval_rerank.json | tee -a results-bench.txt
 
       - name: Job summary
